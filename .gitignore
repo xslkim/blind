@@ -1,0 +1,19 @@
+# 生成的音频素材（可由脚本重新生成）
+audio/00_raw/
+audio/01_processed/
+audio/02_final/
+audio/03_qa_reports/
+audio/test_output/
+
+# pip 误写产物
+=2.5.1
+
+# 缓存
+.cache/
+__pycache__/
+*.pyc
+*.pyo
+
+# 临时文件
+*.tmp
+*.bak
