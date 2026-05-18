@@ -21,14 +21,37 @@
     /* ── 开始界面 ── */
     #start{
       position:fixed;inset:0;background:#000;z-index:80;
-      display:flex;flex-direction:column;align-items:center;justify-content:center;
-      color:#fff;text-align:center;padding:40px;
+      display:flex;flex-direction:column;align-items:center;
+      color:#fff;text-align:center;padding:40px 32px 48px;
+      overflow-y:auto;-webkit-overflow-scrolling:touch;
     }
-    #start h1{font-size:38px;font-weight:200;letter-spacing:14px;margin-bottom:28px}
+    #start h1{font-size:38px;font-weight:200;letter-spacing:14px;margin-top:48px;margin-bottom:28px}
     #start .sub{font-size:14px;color:#777;line-height:2.4}
-    #start .hint{margin-top:48px;font-size:12px;color:#444;animation:pulse 2.5s ease-in-out infinite}
+    #start .hint{margin-top:40px;font-size:12px;color:#444;animation:pulse 2.5s ease-in-out infinite}
     #start .tip{margin-top:16px;font-size:11px;color:#2a2a2a;line-height:1.9}
     @keyframes pulse{0%,100%{opacity:1}50%{opacity:.2}}
+
+    /* ── 操作说明 ── */
+    #controls{
+      margin-top:44px;width:100%;max-width:320px;text-align:left;
+    }
+    #controls .ctrl-title{
+      font-size:10px;letter-spacing:4px;color:#333;text-align:center;margin-bottom:20px;
+    }
+    #controls .ctrl-group{
+      margin-bottom:20px;
+    }
+    #controls .ctrl-scene{
+      font-size:10px;letter-spacing:2px;color:#3a3a3a;margin-bottom:8px;padding-bottom:6px;
+      border-bottom:1px solid #1a1a1a;
+    }
+    #controls .ctrl-row{
+      display:flex;justify-content:space-between;align-items:baseline;
+      padding:5px 0;border-bottom:1px solid #111;
+    }
+    #controls .ctrl-row:last-child{border-bottom:none;}
+    #controls .ctrl-gesture{font-size:11px;color:#555;white-space:nowrap;flex-shrink:0;}
+    #controls .ctrl-action{font-size:11px;color:#2e2e2e;text-align:right;margin-left:12px;}
 
     /* ── 字幕层（结局文字）── */
     #caption{
@@ -58,6 +81,42 @@
     你接谁，不接谁<br>
     决定明天的自己
   </div>
+  <div id="controls">
+    <div class="ctrl-title">操 作 说 明</div>
+
+    <div class="ctrl-group">
+      <div class="ctrl-scene">通用（随时可用）</div>
+      <div class="ctrl-row"><span class="ctrl-gesture">下滑</span><span class="ctrl-action">查看当前状态</span></div>
+      <div class="ctrl-row"><span class="ctrl-gesture">上滑</span><span class="ctrl-action">打开收件箱</span></div>
+    </div>
+
+    <div class="ctrl-group">
+      <div class="ctrl-scene">来电时</div>
+      <div class="ctrl-row"><span class="ctrl-gesture">单点</span><span class="ctrl-action">接听</span></div>
+      <div class="ctrl-row"><span class="ctrl-gesture">左滑</span><span class="ctrl-action">拒接</span></div>
+    </div>
+
+    <div class="ctrl-group">
+      <div class="ctrl-scene">收到消息</div>
+      <div class="ctrl-row"><span class="ctrl-gesture">单点</span><span class="ctrl-action">播放</span></div>
+      <div class="ctrl-row"><span class="ctrl-gesture">左滑</span><span class="ctrl-action">忽略</span></div>
+    </div>
+
+    <div class="ctrl-group">
+      <div class="ctrl-scene">听完消息</div>
+      <div class="ctrl-row"><span class="ctrl-gesture">单点</span><span class="ctrl-action">回复"嗯"</span></div>
+      <div class="ctrl-row"><span class="ctrl-gesture">双点</span><span class="ctrl-action">标准回复</span></div>
+      <div class="ctrl-row"><span class="ctrl-gesture">长按</span><span class="ctrl-action">更多回复选项</span></div>
+      <div class="ctrl-row"><span class="ctrl-gesture">左滑</span><span class="ctrl-action">已读不回</span></div>
+    </div>
+
+    <div class="ctrl-group">
+      <div class="ctrl-scene">选择回复时</div>
+      <div class="ctrl-row"><span class="ctrl-gesture">上下左右滑</span><span class="ctrl-action">选择选项</span></div>
+      <div class="ctrl-row"><span class="ctrl-gesture">单点</span><span class="ctrl-action">重听选项</span></div>
+    </div>
+  </div>
+
   <div class="hint">· 轻触屏幕开始 ·</div>
   <div class="tip">
     建议关灯 · 戴上耳机<br>

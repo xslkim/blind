@@ -52,16 +52,14 @@ class GameEngine {
 
   _bindGestures() {
     const G = this.gest;
-    G.on('singletap',         () => this._onSingleTap());
-    G.on('doubletap',         () => this._onDoubleTap());
-    G.on('longpress1s',       () => this._onLongPress1s());
-    G.on('longpress5s',       () => this._onLongPress5s());
-    G.on('swipe_left',        () => this._onSwipe('left'));
-    G.on('swipe_right',       () => this._onSwipe('right'));
-    G.on('swipe_up',          () => this._onSwipe('up'));
-    G.on('swipe_down',        () => this._onSwipe('down'));
-    G.on('twoswipe_up',       () => this._onTwoSwipeUp());
-    G.on('threefinger_long2s',() => this._onInboxOpen());
+    G.on('singletap',    () => this._onSingleTap());
+    G.on('doubletap',    () => this._onDoubleTap());
+    G.on('longpress1s',  () => this._onLongPress1s());
+    G.on('longpress5s',  () => this._onLongPress5s());
+    G.on('swipe_left',   () => this._onSwipe('left'));
+    G.on('swipe_right',  () => this._onSwipe('right'));
+    G.on('swipe_up',     () => this._onSwipe('up'));
+    G.on('swipe_down',   () => this._onSwipe('down'));
   }
 
   // ══════════════════════════════════════════
@@ -416,8 +414,12 @@ class GameEngine {
       this._inboxSelect();
     }
     else if (s === 'playing') {
-      // 播放中单点：询问当前状态
-      TTS.speak('现在没有新消息。三指长按查看收件箱。', { rate: 0.9, volume: 0.6 });
+      const unread = this.vars.UNREAD;
+      if (unread > 0) {
+        TTS.speak(`${unread}条未读消息。上滑打开收件箱。`, { rate: 0.9, volume: 0.6 });
+      } else {
+        TTS.speak('暂无新消息。', { rate: 0.9, volume: 0.6 });
+      }
     }
   }
 
@@ -445,7 +447,7 @@ class GameEngine {
       }
     }
     else if (s === 'ringing') {
-      // 双点 = 静音接听
+      // 双点来电 = 同样接听
       this._answerCall(msg);
     }
   }
@@ -483,48 +485,101 @@ class GameEngine {
     const s = this.state;
     const msg = this.currentMsg;
 
-    if (s === 'ringing') {
-      if (dir === 'left') this._rejectCall(msg);
-    }
-    else if (s === 'detail_reply' && this.awaitingChoice) {
+    // 细回复 / 通话选项：四个方向用于选择
+    if ((s === 'detail_reply' || (s === 'in_call' && this.awaitingChoice)) && this.currentChoices) {
       this._selectDetailChoice(dir);
+      return;
     }
-    else if (s === 'in_call' && this.awaitingChoice) {
-      this._selectDetailChoice(dir);
+
+    // 下滑 = 查询当前状态（任意场景可用）
+    if (dir === 'down') {
+      this._announceStatus();
+      return;
     }
-    else if (s === 'await_reply' || s === 'msg_playing') {
-      // 滑动方向 = 细回复选项
-      if (msg?.detailReplies && this.awaitingChoice) {
-        this._selectDetailChoice(dir);
+
+    // 上滑 = 打开收件箱（主屏幕时）
+    if (dir === 'up') {
+      if (s === 'playing') this._onInboxOpen();
+      return;
+    }
+
+    // 右滑 = 接听（来电时）
+    if (dir === 'right') {
+      if (s === 'ringing') this._answerCall(msg);
+      return;
+    }
+
+    // 左滑 = 拒接 / 挂断 / 忽略 / 已读不回 / 返回
+    if (dir === 'left') {
+      if (s === 'ringing') {
+        this._rejectCall(msg);
+      }
+      else if (s === 'in_call') {
+        Snd.stopVoice();
+        Haptic.reject();
+        TTS.speak('已挂断。', { rate: 0.9, volume: 0.7 });
+        this.state = 'playing';
+        this.currentMsg = null;
+        this.awaitingChoice = false;
+      }
+      else if (s === 'msg_incoming') {
+        if (msg?.type === 'system_notification') {
+          TTS.speak('已跳过。', { rate: 0.9, volume: 0.6 });
+          this.msgState[msg.id] = 'read';
+          this.profile.add(msg.profileOnSkip);
+        } else {
+          TTS.speak('（消息保持未读）', { rate: 0.85, volume: 0.5 });
+        }
+        this.state = 'playing';
+        this.currentMsg = null;
+      }
+      else if (s === 'await_reply' && msg) {
+        TTS.speak('（已读不回）', { rate: 0.85, volume: 0.6 });
+        this.msgState[msg.id] = 'read';
+        this.profile.onReadNoReply();
+        this.state = 'playing';
+      }
+      else if (s === 'inbox') {
+        this.state = 'playing';
+        this._inboxMessages = null;
+        TTS.speak('返回主屏幕。', { rate: 0.9, volume: 0.6 });
       }
     }
   }
 
-  _onTwoSwipeUp() {
+  // ── 下滑：播报当前状态和可用操作 ──
+  _announceStatus() {
     const s = this.state;
     const msg = this.currentMsg;
 
-    if (s === 'await_reply' && msg) {
-      // 已读不回
-      TTS.speak('（已读不回）', { rate: 0.85, volume: 0.6 });
-      this.msgState[msg.id] = 'read';
-      this.profile.onReadNoReply();
-      this.state = 'playing';
+    if (s === 'playing') {
+      const unread = this.vars.UNREAD;
+      if (unread > 0) {
+        TTS.speak(`主屏幕，${unread}条未读。上滑查看收件箱。`, { rate: 0.9, volume: 0.7 });
+      } else {
+        TTS.speak('主屏幕，暂无新消息。', { rate: 0.9, volume: 0.7 });
+      }
+    }
+    else if (s === 'ringing') {
+      TTS.speak(`${msg?.senderName}来电中。单点接听，左滑拒接。`, { rate: 0.9, volume: 0.7 });
+    }
+    else if (s === 'in_call') {
+      TTS.speak('通话中。左滑挂断。', { rate: 0.9, volume: 0.7 });
     }
     else if (s === 'msg_incoming') {
-      if (msg?.type === 'system_notification') {
-        // 跳过时光胶囊
-        TTS.speak('已跳过。', { rate: 0.9, volume: 0.6 });
-        this.msgState[msg.id] = 'read';
-        this.profile.add(msg.profileOnSkip);
-        this.state = 'playing';
-        this.currentMsg = null;
-      } else {
-        // 忽略消息（保持未读）
-        TTS.speak('（消息保持未读）', { rate: 0.85, volume: 0.5 });
-        this.state = 'playing';
-        this.currentMsg = null;
-      }
+      TTS.speak(`${msg?.senderName}的新消息。单点播放，左滑忽略。`, { rate: 0.9, volume: 0.7 });
+    }
+    else if (s === 'msg_playing') {
+      TTS.speak('消息播放中。', { rate: 0.9, volume: 0.7 });
+    }
+    else if (s === 'await_reply') {
+      TTS.speak(`${msg?.senderName}的消息已播完。单点回嗯，双点标准回复，长按细回复，左滑已读不回。`, { rate: 0.9, volume: 0.7 });
+    }
+    else if (s === 'detail_reply') {
+      TTS.speak('细回复选项中。滑动选择，单点重听。', { rate: 0.9, volume: 0.7 });
+    }
+    else if (s === 'inbox') {
+      TTS.speak('收件箱。单点进入最新消息，左滑返回。', { rate: 0.9, volume: 0.7 });
     }
   }
 
@@ -555,7 +610,7 @@ class GameEngine {
       await sleep(200);
     }
 
-    await TTS.speak('单点进入最新一条，或等待返回。', { rate: 0.85, volume: 0.6 });
+    await TTS.speak('单点进入最新一条，左滑返回。', { rate: 0.85, volume: 0.6 });
 
     this._inboxMessages = unreadMsgs;
     // 5秒后自动退出收件箱
